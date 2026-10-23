@@ -42,7 +42,7 @@ def lambda_handler(event, context):
     service_messages = service.users().messages()
 
     email_result = []
-    results = service_messages.list(userId='me', includeSpamTrash=True, maxResults=5).execute()
+    results = service_messages.list(userId='me', includeSpamTrash=True, maxResults=50).execute()
     for message in results.get('messages'):
         sender = None
         subject = None
@@ -59,6 +59,7 @@ def lambda_handler(event, context):
             elif header["name"].lower() == "subject":
                 subject = header["value"]
         email_result.append({
+            "id": message_id,
             "subject": subject,
             "date": date,
             "status":label,
