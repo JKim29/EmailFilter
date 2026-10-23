@@ -51,7 +51,7 @@ def lambda_handler(event, context):
         message_result = service_messages.get(userId='me', id=message_id).execute()
 
         internal_date = message_result.get('internalDate')
-        date = datetime.fromtimestamp(int(internal_date) / 1000.0)
+        date = str(datetime.fromtimestamp(int(internal_date) / 1000.0))
         label = message_result.get('labelIds')
         for header in message_result.get('payload').get('headers'):
             if header["name"].lower() == "from":
