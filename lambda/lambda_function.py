@@ -1,5 +1,6 @@
 import json
 import boto3
+import os
 from datetime import datetime, UTC
 
 s3_client = boto3.client('s3')
@@ -14,7 +15,7 @@ def lambda_handler(event, context):
 
     runtime = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
 
-    bucket_name = "jk-email-dev-s3-bucket"
+    bucket_name = os.environ["BUCKET_NAME"]
     file_name = f"gmail_export_{runtime}.json"
 
     try:
