@@ -29,4 +29,4 @@ jobs:
         uses: aws-actions/aws-lambda-deploy@v1
         with:
           function-name: jk-email-dev-func-au-primary
-          source-dir: ./lambda
+          code-artifacts-dir: ./lambda
