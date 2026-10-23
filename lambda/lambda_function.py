@@ -1,25 +1,41 @@
 import json
 import boto3
+import time
 import os
-import base64
 from datetime import datetime, UTC
-import requests
-import dotenv
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
+# import dotenv
 # from dotenv import find_dotenv, load_dotenv
 
 
 # load_dotenv(find_dotenv(usecwd=True), override=True)
 s3_client = boto3.client('s3')
+secretsmanager_client = boto3.client('secretsmanager', region_name='ap-southeast-2')
+
+# Simple cache implementation
+_cache = {}
+CACHE_TTL = 300  # 5 minutes
+
+def get_secret(secret_id):
+    cached = _cache.get(secret_id)
+    if cached and time.time() - cached['timestamp'] < CACHE_TTL:
+        return cached['value']
+
+    response = secretsmanager_client.get_secret_value(SecretId=secret_id)
+    secret = json.loads(response['SecretString'])
+
+    _cache[secret_id] = {'value': secret, 'timestamp': time.time()}
+    return secret
 
 
 def lambda_handler(event, context):
+    gmail_creds = get_secret('prod/Lambda')
     creds = Credentials(
         token=None,
-        refresh_token=os.environ['GMAIL_REFRESH_TOKEN'],
-        client_id=os.environ['GMAIL_CLIENT'],
-        client_secret=os.environ['GMAIL_SECRET'],
+        refresh_token=gmail_creds['GMAIL_REFRESH_TOKEN'],
+        client_id=gmail_creds['GMAIL_CLIENT'],
+        client_secret=gmail_creds['GMAIL_SECRET'],
         token_uri="https://oauth2.googleapis.com/token",
     )
     service = build('gmail', 'v1', credentials=creds)
