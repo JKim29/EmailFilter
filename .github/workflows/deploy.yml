@@ -26,14 +26,10 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Zip Lambda function
-        run: |
-          cd lambda
-          zip -r ../function.zip .
-          cd ..
-
       - name: Deploy to AWS Lambda
         uses: aws-actions/aws-lambda-deploy@v1
         with:
           function-name: jk-email-dev-func-au-primary
-          zip-file: ./function.zip
+          code-artifacts-dir: ./lambda
+          handler: lambda_function.lambda_handler
+          runtime: python3.14
