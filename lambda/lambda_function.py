@@ -5,6 +5,7 @@ import os
 from datetime import datetime, UTC
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
+import urllib.error
 import urllib.parse
 import urllib.request
 # import dotenv
@@ -42,8 +43,12 @@ def upload_to_volume(filename, secretmanager_creds, data: bytes):
             "Content-Type": "application/octet-stream",
         },
     )
-    with urllib.request.urlopen(req) as resp:
-        return resp.status
+    try:
+        with urllib.request.urlopen(req) as resp:
+            return resp.status
+    except urllib.error.HTTPError as e:
+        print(f"Databricks upload failed ({e.code}): {e.read().decode('utf-8', errors='replace')}")
+        raise
 
 
 def lambda_handler(event, context):
