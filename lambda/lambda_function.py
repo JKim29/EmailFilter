@@ -5,6 +5,8 @@ import os
 from datetime import datetime, UTC
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
+import urllib.parse
+import urllib.request
 # import dotenv
 # from dotenv import find_dotenv, load_dotenv
 
@@ -29,13 +31,28 @@ def get_secret(secret_id):
     return secret
 
 
+def upload_to_volume(filename, secretmanager_creds, data: bytes):
+    path = urllib.parse.quote(f"/Volumes/workspace/default/email_filter/{filename}")
+    req = urllib.request.Request(
+        f"{secretmanager_creds['DATABRICKS_HOST']}/api/2.0/fs/files{path}?overwrite=true",
+        data=data,
+        method="PUT",
+        headers={
+            "Authorization": f"Bearer {secretmanager_creds['DATABRICKS_TOKEN']}",
+            "Content-Type": "application/octet-stream",
+        },
+    )
+    with urllib.request.urlopen(req) as resp:
+        return resp.status
+
+
 def lambda_handler(event, context):
-    gmail_creds = get_secret('prod/Lambda')
+    secretmanager_creds = get_secret('prod/Lambda')
     creds = Credentials(
         token=None,
-        refresh_token=gmail_creds['GMAIL_REFRESH_TOKEN'],
-        client_id=gmail_creds['GMAIL_CLIENT'],
-        client_secret=gmail_creds['GMAIL_SECRET'],
+        refresh_token=secretmanager_creds['GMAIL_REFRESH_TOKEN'],
+        client_id=secretmanager_creds['GMAIL_CLIENT'],
+        client_secret=secretmanager_creds['GMAIL_SECRET'],
         token_uri="https://oauth2.googleapis.com/token",
     )
     service = build('gmail', 'v1', credentials=creds)
@@ -43,7 +60,7 @@ def lambda_handler(event, context):
 
     email_result = []
     results = service_messages.list(userId='me', includeSpamTrash=True, maxResults=50).execute()
-    for message in results.get('messages'):
+    for message in results.get('messages', []):
         sender = None
         subject = None
         message_id = message.get('id')
@@ -68,20 +85,14 @@ def lambda_handler(event, context):
 
     runtime = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
 
-    bucket_name = os.environ["BUCKET_NAME"]
+    # bucket_name = os.environ["BUCKET_NAME"]
     file_name = f"gmail_export_{runtime}.json"
 
     try:
         # Convert dictionary to a deployment-ready JSON string
         json_string = json.dumps(email_result)
         
-        # Upload data directly from memory to S3
-        s3_client.put_object(
-            Bucket=bucket_name,
-            Key=file_name,
-            Body=json_string,
-            ContentType='application/json'
-        )
+        upload_to_volume(file_name, secretmanager_creds, json_string.encode("utf-8"))
         
         return {
             'statusCode': 200,
