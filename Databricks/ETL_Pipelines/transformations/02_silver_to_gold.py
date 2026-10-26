@@ -39,7 +39,7 @@ def all_emails():
         dlt.read(f"{catalog}.{silver_schema}.email")
         .groupBy("emailFrom", "status")
         .agg(
-            count("*").alias("unread_count"),
+            count("*").alias("total_count"),
             min(col("date")).alias("min_date"),
             max(col("date")).alias("max_date"),
         )
