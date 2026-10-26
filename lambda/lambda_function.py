@@ -33,7 +33,7 @@ def get_secret(secret_id):
 
 
 def upload_to_volume(filename, secretmanager_creds, data: bytes):
-    path = urllib.parse.quote(f"/Volumes/email_filter/00_landing/raw/{filename}")
+    path = urllib.parse.quote(f"/Volumes/email_filter/00_landing/lambda/raw/{filename}")
     req = urllib.request.Request(
         f"{secretmanager_creds['DATABRICKS_HOST']}/api/2.0/fs/files{path}?overwrite=true",
         data=data,
